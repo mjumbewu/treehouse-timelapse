@@ -120,13 +120,13 @@ def main(cluster_count):
 
     # Save the separate clusters.
     palette = Image.new('RGB', (w, h))
-    for centroid_index, centroid in enumerate(centroids):
+    for cluster_index, centroid in enumerate(centroids):
         im = Image.new('RGB', (w, h))
         for pixel, ci in clustered_data:
-            if ci == centroid_index:
+            if ci == cluster_index:
                 x, y, color = pixel
                 im.putpixel((x, y), color)
-        with open(f'cluster{ci + 1}of{cluster_count}.png', 'wb') as outfile:
+        with open(f'cluster{cluster_index + 1}of{cluster_count}.png', 'wb') as outfile:
             im.save(outfile)
 
     # Save the composite palette image.
@@ -136,7 +136,7 @@ def main(cluster_count):
         x, y, _ = pixel
         _, _, avgcolor = centroid
         im.putpixel((x, y), avgcolor)
-    with open('clusterpalette.png', 'wb') as outfile:
+    with open(f'{cluster_count}clusterpalette.png', 'wb') as outfile:
         im.save(outfile)
 
     # Calculate the sum of the square errors
