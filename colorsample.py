@@ -56,7 +56,7 @@ def kmeans(k, data, color_dist_sq_scale=1):
     if len(data) < k:
         raise ValueError(f'Not enough data for {k} clusters')
 
-    indexed_centroids = tuple(enumerate(sample(data, k)))
+    centroids = tuple(sample(data, k))
     clustered_data = tuple((pixel, None) for pixel in data)
 
     def centroid_dist_sq(pixel, indexed_centroid):
@@ -68,26 +68,26 @@ def kmeans(k, data, color_dist_sq_scale=1):
 
         itercount += 1
         print(f'Iteration #{itercount}; centroids:')
-        for index, centroid in indexed_centroids:
+        for centroid in centroids:
             print(f'\t{centroid}')
 
         new_clustered_data = []
         for pixel in data:
-            index, centroid = min(indexed_centroids, key=partial(centroid_dist_sq, pixel))
+            index, centroid = min(enumerate(centroids), key=partial(centroid_dist_sq, pixel))
             new_clustered_data.append((pixel, index))
 
         if clustered_data == new_clustered_data:
             break
 
         clustered_data = new_clustered_data
-        indexed_centroids = []
+        centroids = []
         for index in range(k):
             cluster = tuple(pixel for (pixel, i) in clustered_data if i == index)
             print(f'Cluster for centroid {index} has {len(cluster)} pixels')
             centroid = pixel_average(cluster)
-            indexed_centroids.append((index, centroid))
+            centroids.append(centroid)
 
-    return clustered_data, indexed_centroids
+    return clustered_data, centroids
 
 
 def main():
@@ -115,25 +115,38 @@ def main():
     color_dist_sq_scale = MAX_SIDE_LENGTH**2 / MAX_COLOR_DIST_SQ
 
     # Get the clusters
-    count = 4
-    clustered_data, indexed_centroids = kmeans(count, data, color_dist_sq_scale)
+    cluster_count = 5
+    clustered_data, centroids = kmeans(cluster_count, data, color_dist_sq_scale)
 
     # Save the separate clusters.
     palette = Image.new('RGB', (w, h))
-    for c in range(count):
-        index, (cx, cy, avgcolor) = indexed_centroids[c]
+    for centroid_index, centroid in enumerate(centroids):
         im = Image.new('RGB', (w, h))
-        for pixel, i in clustered_data:
-            if i == c:
+        for pixel, ci in clustered_data:
+            if ci == centroid_index:
                 x, y, color = pixel
                 im.putpixel((x, y), color)
-                palette.putpixel((x, y), tuple(int(n) for n in avgcolor))
-
-        with open(f'cluster{c}.png', 'wb') as outfile:
+        with open(f'cluster{ci}.png', 'wb') as outfile:
             im.save(outfile)
 
+    # Save the composite palette image.
+    im = Image.new('RGB', (w, h))
+    for pixel, ci in clustered_data:
+        centroid = centroids[ci]
+        x, y, _ = pixel
+        _, _, avgcolor = centroid
+        im.putpixel((x, y), avgcolor)
     with open('clusterpalette.png', 'wb') as outfile:
-        palette.save(outfile)
+        im.save(outfile)
+
+    # Calculate the sum of the square errors
+    sq_error = 0
+    for pixel, ci in clustered_data:
+        centroid = centroids[ci]
+        sq_error += pixel_distance_sq(pixel, centroid, color_dist_sq_scale)
+
+    print(f'Number of clusters: {cluster_count}')
+    print(f'Sum of squared error: {sq_error}')
 
 
 if __name__ == '__main__':
