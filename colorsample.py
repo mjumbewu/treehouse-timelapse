@@ -112,14 +112,21 @@ def main():
     clustered_data, indexed_centroids = kmeans(count, data)
 
     # Save the separate clusters.
+    palette = Image.new('RGB', (w, h))
     for c in range(count):
+        index, (cx, cy, avgcolor) = indexed_centroids[c]
         im = Image.new('RGB', (w, h))
         for pixel, i in clustered_data:
             if i == c:
                 x, y, color = pixel
                 im.putpixel((x, y), color)
+                palette.putpixel((x, y), tuple(int(n) for n in avgcolor))
+
         with open(f'cluster{c}.png', 'wb') as outfile:
             im.save(outfile)
+
+    with open('clusterpalette.png', 'wb') as outfile:
+        palette.save(outfile)
 
 
 if __name__ == '__main__':
