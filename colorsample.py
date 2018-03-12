@@ -3,22 +3,19 @@ from PIL import Image
 from random import sample
 
 
-MAX_COLOR = 255**2
-
-
 def average(nums):
     nums = tuple(nums)
     return sum(nums) / len(nums)
 
 
-def pixel_distance_sq(p1, p2):
+def pixel_distance_sq(p1, p2, color_dist_sq_scale=1):
     x1, y1, c1 = p1
     x2, y2, c2 = p2
 
     dsq = (
         (x2 - x1)**2 +
         (y2 - y1)**2 +
-        color_distance_sq(c1, c2)
+        color_distance_sq(c1, c2) / color_dist_sq_scale
     )
     return dsq
 
@@ -49,7 +46,7 @@ def color_average(colors):
     return (int(avgr**0.5), int(avgg**0.5), int(avgb**0.5))
 
 
-def kmeans(k, data):
+def kmeans(k, data, color_dist_sq_scale=1):
     """
     Step 1 - Pick K random points as cluster centers called centroids.
     Step 2 - Assign each xi to nearest cluster by calculating its distance to each centroid.
@@ -64,7 +61,7 @@ def kmeans(k, data):
 
     def centroid_dist_sq(pixel, indexed_centroid):
         index, centroid = indexed_centroid
-        return pixel_distance_sq(pixel, centroid)
+        return pixel_distance_sq(pixel, centroid, color_dist_sq_scale)
 
     itercount = 0
     while True:
@@ -107,9 +104,19 @@ def main():
         for y in range(h)
     )
 
+    # We want it so that the maximum distance along any given axis is about the
+    # same. Specifically, we want the color distance to not have a greater effect
+    # than the larger of the geometric distances.
+    MAX_COLOR_DIST_SQ = color_distance_sq((0,0,0), (255,255,255))
+    MAX_SIDE_LENGTH = max(w, h)
+
+    # Scale the colors to have the same distance effect as the geometric
+    # dimensions.
+    color_dist_sq_scale = MAX_SIDE_LENGTH**2 / MAX_COLOR_DIST_SQ
+
     # Get the clusters
     count = 4
-    clustered_data, indexed_centroids = kmeans(count, data)
+    clustered_data, indexed_centroids = kmeans(count, data, color_dist_sq_scale)
 
     # Save the separate clusters.
     palette = Image.new('RGB', (w, h))
