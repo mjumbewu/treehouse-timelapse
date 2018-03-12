@@ -1,3 +1,5 @@
+#cython: boundscheck=False, wraparound=False, nonecheck=False, cdivision=False
+
 from functools import partial
 from random import sample
 
@@ -7,16 +9,22 @@ def average(nums):
     return sum(nums) / len(nums)
 
 
-def pixel_distance_sq(p1, p2, color_dist_sq_scale=1):
-    x1, y1, c1 = p1
-    x2, y2, c2 = p2
-
+cdef double _pixel_distance_sq(double x1, double y1, int r1, int g1, int b1,
+                               double x2, double y2, int r2, int g2, int b2,
+                               double color_dist_sq_scale):
     dsq = (
         (x2 - x1)**2 +
         (y2 - y1)**2 +
-        color_distance_sq(c1, c2) / color_dist_sq_scale
+        _color_distance_sq(r1, g1, b1, r2, g2, b2) / color_dist_sq_scale
     )
     return dsq
+
+def pixel_distance_sq(p1, p2, color_dist_sq_scale=1):
+    x1, y1, (r1, g1, b1) = p1
+    x2, y2, (r2, g2, b2) = p2
+    return _pixel_distance_sq(x1, y1, r1, g1, b1,
+                              x2, y2, r2, g2, b2,
+                              color_dist_sq_scale)
 
 
 def pixel_average(pixels):
@@ -28,12 +36,20 @@ def pixel_average(pixels):
     return (avgx, avgy, avgc)
 
 
-def color_distance_sq(c1, c2):
-    r1, g1, b1 = (n for n in c1)
-    r2, g2, b2 = (n for n in c2)
+cdef int _color_distance_sq(int r1, int g1, int b1,
+                            int r2, int g2, int b2):
+    r1 = r1**2
+    g1 = g1**2
+    b1 = b1**2
+    r2 = r2**2
+    g2 = g2**2
+    b2 = b2**2
 
     dsq = (r2 - r1)**2 + (g2 - g1)**2 + (b2 - b1)**2
     return dsq
+
+def color_distance_sq(c1, c2):
+    return _color_distance_sq(c1[0], c1[1], c1[2], c2[0], c2[1], c2[2])
 
 
 def color_average(colors):
@@ -45,7 +61,7 @@ def color_average(colors):
     return (int(avgr**0.5), int(avgg**0.5), int(avgb**0.5))
 
 
-def kmeans(k, data, color_dist_sq_scale=1):
+def kmeans(int k, data, double color_dist_sq_scale=1):
     """
     Step 1 - Pick K random points as cluster centers called centroids.
     Step 2 - Assign each xi to nearest cluster by calculating its distance to each centroid.
