@@ -46,7 +46,7 @@ def color_average(colors):
     avgg = average(c[1]**2 for c in colors)
     avgb = average(c[2]**2 for c in colors)
 
-    return (avgr**0.5, avgg**0.5, avgb**0.5)
+    return (int(avgr**0.5), int(avgg**0.5), int(avgb**0.5))
 
 
 def kmeans(k, data):
