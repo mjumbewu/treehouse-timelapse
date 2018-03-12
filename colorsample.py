@@ -1,6 +1,7 @@
 from functools import partial
 from PIL import Image
 from random import sample
+import sys
 
 
 def average(nums):
@@ -90,7 +91,7 @@ def kmeans(k, data, color_dist_sq_scale=1):
     return clustered_data, centroids
 
 
-def main():
+def main(cluster_count):
     # Open the image
     from PIL import Image
     # im = Image.open("/home/mjumbewu/Pictures/LaConcha.jpg")
@@ -115,7 +116,6 @@ def main():
     color_dist_sq_scale = MAX_SIDE_LENGTH**2 / MAX_COLOR_DIST_SQ
 
     # Get the clusters
-    cluster_count = 5
     clustered_data, centroids = kmeans(cluster_count, data, color_dist_sq_scale)
 
     # Save the separate clusters.
@@ -126,7 +126,7 @@ def main():
             if ci == centroid_index:
                 x, y, color = pixel
                 im.putpixel((x, y), color)
-        with open(f'cluster{ci}.png', 'wb') as outfile:
+        with open(f'cluster{ci + 1}of{cluster_count}.png', 'wb') as outfile:
             im.save(outfile)
 
     # Save the composite palette image.
@@ -150,4 +150,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    count = int(sys.argv[1])
+    main(count)
