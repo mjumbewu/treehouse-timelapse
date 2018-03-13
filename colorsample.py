@@ -96,9 +96,6 @@ def kmeans(k, data, color_dist_sq_scale=1):
 @argument('infilename')
 @argument('cluster_count', type=int)
 def main(infilename, cluster_count):
-    # Open the image
-    from PIL import Image
-    # im = Image.open("/home/mjumbewu/Pictures/LaConcha.jpg")
     im = Image.open(infilename)
     w, h = im.width, im.height
 
