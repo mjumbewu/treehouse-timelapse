@@ -3,6 +3,8 @@
 from functools import partial
 from random import sample
 
+from cpython cimport array
+from array import array
 
 def average(nums):
     nums = tuple(nums)
@@ -61,7 +63,7 @@ def color_average(colors):
     return (int(avgr**0.5), int(avgg**0.5), int(avgb**0.5))
 
 
-def kmeans(k, data, color_dist_sq_scale=1.0):
+def kmeans(int k, data, double color_dist_sq_scale=1.0):
     """
     Step 1 - Pick K random points as cluster centers called centroids.
     Step 2 - Assign each xi to nearest cluster by calculating its distance to each centroid.
@@ -71,12 +73,37 @@ def kmeans(k, data, color_dist_sq_scale=1.0):
     if len(data) < k:
         raise ValueError(f'Not enough data for {k} clusters')
 
-    centroids = tuple(sample(data, k))
-    clustered_data = tuple((pixel, None) for pixel in data)
+    cdef int num_pixels = len(data)
 
-    def centroid_dist_sq(pixel, indexed_centroid):
-        index, centroid = indexed_centroid
-        return pixel_distance_sq(pixel, centroid, color_dist_sq_scale)
+    # Populate C arrays with pixel data.
+    # -- Coordinates for pixel data
+    cdef double [:] xs = array('d', [pixel[0] for pixel in data])
+    cdef double [:] ys = array('d', [pixel[1] for pixel in data])
+    # -- Colors for pixel data
+    cdef long [:] rs = array('l', [pixel[2][0] for pixel in data])
+    cdef long [:] gs = array('l', [pixel[2][1] for pixel in data])
+    cdef long [:] bs = array('l', [pixel[2][2] for pixel in data])
+
+    # Find initial centroids. Stick them in C arrays too.
+    centroids = tuple(sample(data, k))
+    # -- Coordinates for cluster centroids
+    cdef double [:] centroid_xs = array('d', [centroid[0] for centroid in centroids])
+    cdef double [:] centroid_ys = array('d', [centroid[1] for centroid in centroids])
+    # -- Colors for cluster centroids
+    cdef long [:] centroid_rs = array('l', [centroid[2][0] for centroid in centroids])
+    cdef long [:] centroid_gs = array('l', [centroid[2][1] for centroid in centroids])
+    cdef long [:] centroid_bs = array('l', [centroid[2][2] for centroid in centroids])
+
+    # Create index counters for clusters and pixels
+    cdef int ci, pi
+
+    # Create variables for the distance from pixels to their cluster's centroid
+    cdef int min_dist_ci
+    cdef double min_dist
+
+    # Initialize the cluster assignments for each pixel
+    cdef int [:] cis = array('i', [-1] * num_pixels)
+    cdef int [:] new_cis = array('i', [-1] * num_pixels)
 
     itercount = 0
     while True:
@@ -86,20 +113,48 @@ def kmeans(k, data, color_dist_sq_scale=1.0):
         for centroid in centroids:
             print(f'\t{centroid}')
 
-        new_clustered_data = []
-        for pixel in data:
-            index, centroid = min(enumerate(centroids), key=partial(centroid_dist_sq, pixel))
-            new_clustered_data.append((pixel, index))
+        # Populate arrays with the centroid data
+        for ci, centroid in enumerate(centroids):
+            centroid_xs[ci] = centroid[0]
+            centroid_ys[ci] = centroid[1]
+            centroid_rs[ci] = centroid[2][0]
+            centroid_gs[ci] = centroid[2][1]
+            centroid_bs[ci] = centroid[2][2]
 
-        if clustered_data == new_clustered_data:
-            break
+        # Find the min distanced cluster for each pixel
+        for pi in range(num_pixels):
+            min_dist_ci = min_dist = -1
+            for ci in range(k):
+                dist = _pixel_distance_sq(
+                    xs[pi], ys[pi], rs[pi], gs[pi], bs[pi],
+                    centroid_xs[ci], centroid_ys[ci], centroid_rs[ci], centroid_gs[ci], centroid_bs[ci],
+                    color_dist_sq_scale)
 
-        clustered_data = new_clustered_data
+                if min_dist_ci == -1 or dist < min_dist:
+                    min_dist = dist
+                    min_dist_ci = ci
+
+            new_cis[pi] = min_dist_ci
+
+        for pi in range(num_pixels):
+            if cis[pi] != new_cis[pi]:
+                break # out of this for loop, continuing with the rest of the iteration.
+        else:
+            break # out of the while loop.
+
+        # Copy the new cluster indexes into the old one.
+        for pi in range(num_pixels):
+            cis[pi] = new_cis[pi]
+
         centroids = []
-        for index in range(k):
-            cluster = tuple(pixel for (pixel, i) in clustered_data if i == index)
-            print(f'Cluster for centroid {index} has {len(cluster)} pixels')
+        for ci in range(k):
+            cluster = tuple(
+                (xs[pi], ys[pi], (rs[pi], gs[pi], bs[pi]))
+                for pi in range(num_pixels) if cis[pi] == ci
+            )
+            print(f'Cluster for centroid {ci} has {len(cluster)} pixels')
             centroid = pixel_average(cluster)
             centroids.append(centroid)
 
+    clustered_data = tuple((data[pi], new_cis[pi]) for pi in range(num_pixels))
     return clustered_data, centroids
