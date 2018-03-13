@@ -1,3 +1,4 @@
+from click import command, argument
 from functools import partial
 from PIL import Image
 from random import sample
@@ -91,11 +92,14 @@ def kmeans(k, data, color_dist_sq_scale=1):
     return clustered_data, centroids
 
 
-def main(cluster_count):
+@command()
+@argument('infilename')
+@argument('cluster_count', type=int)
+def main(infilename, cluster_count):
     # Open the image
     from PIL import Image
     # im = Image.open("/home/mjumbewu/Pictures/LaConcha.jpg")
-    im = Image.open("clustertest.bmp")
+    im = Image.open(infilename)
     w, h = im.width, im.height
 
     # Create a data structure from each
@@ -150,5 +154,4 @@ def main(cluster_count):
 
 
 if __name__ == '__main__':
-    count = int(sys.argv[1])
-    main(count)
+    main()
