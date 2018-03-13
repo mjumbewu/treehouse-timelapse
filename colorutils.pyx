@@ -9,8 +9,8 @@ def average(nums):
     return sum(nums) / len(nums)
 
 
-cdef double _pixel_distance_sq(double x1, double y1, int r1, int g1, int b1,
-                               double x2, double y2, int r2, int g2, int b2,
+cdef double _pixel_distance_sq(double x1, double y1, long r1, long g1, long b1,
+                               double x2, double y2, long r2, long g2, long b2,
                                double color_dist_sq_scale):
     dsq = (
         (x2 - x1)**2 +
@@ -36,8 +36,8 @@ def pixel_average(pixels):
     return (avgx, avgy, avgc)
 
 
-cdef int _color_distance_sq(int r1, int g1, int b1,
-                            int r2, int g2, int b2):
+cdef long _color_distance_sq(long r1, long g1, long b1,
+                             long r2, long g2, long b2):
     r1 = r1**2
     g1 = g1**2
     b1 = b1**2
@@ -45,7 +45,7 @@ cdef int _color_distance_sq(int r1, int g1, int b1,
     g2 = g2**2
     b2 = b2**2
 
-    dsq = (r2 - r1)**2 + (g2 - g1)**2 + (b2 - b1)**2
+    cdef long dsq = (r2 - r1)**2 + (g2 - g1)**2 + (b2 - b1)**2
     return dsq
 
 def color_distance_sq(c1, c2):
@@ -61,7 +61,7 @@ def color_average(colors):
     return (int(avgr**0.5), int(avgg**0.5), int(avgb**0.5))
 
 
-def kmeans(int k, data, double color_dist_sq_scale=1):
+def kmeans(k, data, color_dist_sq_scale=1.0):
     """
     Step 1 - Pick K random points as cluster centers called centroids.
     Step 2 - Assign each xi to nearest cluster by calculating its distance to each centroid.
