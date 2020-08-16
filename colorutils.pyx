@@ -40,12 +40,12 @@ def pixel_average(pixels):
 
 cdef long _color_distance_sq(long r1, long g1, long b1,
                              long r2, long g2, long b2):
-    r1 = r1**2
-    g1 = g1**2
-    b1 = b1**2
-    r2 = r2**2
-    g2 = g2**2
-    b2 = b2**2
+    # r1 = r1**2
+    # g1 = g1**2
+    # b1 = b1**2
+    # r2 = r2**2
+    # g2 = g2**2
+    # b2 = b2**2
 
     cdef long dsq = (r2 - r1)**2 + (g2 - g1)**2 + (b2 - b1)**2
     return dsq
@@ -56,11 +56,11 @@ def color_distance_sq(c1, c2):
 
 def color_average(colors):
     colors = tuple(colors)
-    avgr = average(c[0]**2 for c in colors)
-    avgg = average(c[1]**2 for c in colors)
-    avgb = average(c[2]**2 for c in colors)
+    avgr = average(c[0] for c in colors)
+    avgg = average(c[1] for c in colors)
+    avgb = average(c[2] for c in colors)
 
-    return (int(avgr**0.5), int(avgg**0.5), int(avgb**0.5))
+    return (int(avgr), int(avgg), int(avgb))
 
 
 def kmeans(int k, data, double color_dist_sq_scale=1.0):
